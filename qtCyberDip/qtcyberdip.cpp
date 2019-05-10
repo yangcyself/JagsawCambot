@@ -1171,8 +1171,8 @@ void qtCyberDip::processImg(QImage img)
 	}
 	if (ptr == camPF)
 	{
-//#ifdef VIA_OPENCV
-#if 0
+#ifdef VIA_OPENCV
+
 	if (usrGC != nullptr)
 	{
 		QImage tmpimg  = cvMat2QImage( ((usrGameController*)usrGC)->usrDisplayImage(QImage2cvMat(img)));
@@ -1225,7 +1225,6 @@ QImage qtCyberDip::cvMat2QImage(cv::Mat& inMat)
 			inMat.cols, inMat.rows,
 			static_cast<int>(inMat.step),
 			QImage::Format_ARGB32);
-
 		return image;
 	}
 
@@ -1236,7 +1235,6 @@ QImage qtCyberDip::cvMat2QImage(cv::Mat& inMat)
 			inMat.cols, inMat.rows,
 			static_cast<int>(inMat.step),
 			QImage::Format_RGB888);
-
 		return image.rgbSwapped();
 	}
 
@@ -1254,7 +1252,7 @@ QImage qtCyberDip::cvMat2QImage(cv::Mat& inMat)
 		qWarning() << "ASM::cvMatToQImage() - cv::Mat image type not handled in switch:" << inMat.type();
 		break;
 	}
-
+	inMat.release();
 	return QImage();
 }
 
