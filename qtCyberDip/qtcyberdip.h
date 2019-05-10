@@ -8,8 +8,10 @@
 #include "capScreenForm.h"
 #include "vodPlayer.h"
 #include "camPlayer.h"
+#include "usrServer.h"
 #include <QtNetwork/QUdpSocket>
 #include <QCameraInfo>
+
 
 #ifdef VIA_OPENCV
 #include <opencv2\opencv.hpp>
@@ -143,10 +145,14 @@ private:
 	QImage cvMat2QImage(cv::Mat & inMat);
 	//游戏逻辑与图像识别类
 	void* usrGC = nullptr;
+	//游戏服务器类
+	usrServer* usrSV = nullptr;
+	QThread sevThread;
 #endif
 };
 
 #ifdef VIA_OPENCV
+
 class deviceCyberDip
 {
 private:

@@ -57,6 +57,21 @@ comSPH(nullptr), comPosX(0), comPosY(0), comIsDown(false), comFetch(false)
 	ui->camSelList->installEventFilter(this);
 	//     | Who sends event &&         | Who will watch event
 
+	if(usrSV == nullptr)
+	{
+		int index = ui->camSelList->currentIndex();
+		if (index >= 0 && index < camDevices.length())
+		{
+#ifdef VIA_OPENCV 
+			usrGC = new usrGameController(this);
+#endif
+			usrSV = new usrServer((usrGameController*)usrGC);
+			usrSV->moveToThread(&sevThread);
+			connect(&sevThread, SIGNAL(started()), usrSV, SLOT(ServerRun()), Qt::QueuedConnection);
+			sevThread.start();
+		}
+	}
+
 	startTimer(500);
 }
 
@@ -193,7 +208,7 @@ void qtCyberDip::bbqClickConnect()
 	// The IP is valid, connect to there
 	bbqSF = new bbqScreenForm(this);
 #ifdef VIA_OPENCV
-	usrGC = new usrGameController(this);
+	//usrGC = new usrGameController(this);
 	connect(bbqSF, SIGNAL(imgReady(QImage)), this, SLOT(processImg(QImage)));
 #endif
 	connect(bbqSF, SIGNAL(bbqFinished()), this, SLOT(formClosed()), Qt::QueuedConnection);
@@ -945,7 +960,7 @@ void qtCyberDip::capClickConnect()
 	}
 	capSF = new capScreenForm(this);
 #ifdef VIA_OPENCV
-	usrGC = new usrGameController(this);
+	// usrGC = new usrGameController(this);
 	connect(capSF, SIGNAL(imgReady(QImage)), this, SLOT(processImg(QImage)));
 #endif
 	connect(capSF, SIGNAL(capFinished()), this, SLOT(formClosed()), Qt::QueuedConnection);
@@ -986,7 +1001,7 @@ void qtCyberDip::vodClickPlayButton()
 		}
 		vodPF = new vodPlayer(path);
 #ifdef VIA_OPENCV
-		usrGC = new usrGameController(this);
+		//usrGC = new usrGameController(this);
 #endif
 		vodPF->moveToThread(&vodThread);
 		//vodPF->setPath(path);
@@ -1063,7 +1078,7 @@ void qtCyberDip::camClickOpenButton(){
 		{
 			camPF = new camPlayer(camDevices[index].description());
 #ifdef VIA_OPENCV
-			usrGC = new usrGameController(this);
+			// usrGC = new usrGameController(this);
 #endif
 			camPF->moveToThread(&camThread);
 			connect(camPF, SIGNAL(camFinished()), this, SLOT(formCleanning()), Qt::QueuedConnection);
@@ -1153,11 +1168,26 @@ void qtCyberDip::formCleanning()
 		camPF = nullptr;
 	}
 	camUpdateUI();
+	if (usrSV != nullptr)
+	{
+		if (sevThread.isRunning())
+		{
+			sevThread.exit();
+			sevThread.wait();
+		}
+		delete usrSV;
+		usrSV = nullptr;
+	}
 #ifdef VIA_OPENCV
 	if (usrGC != nullptr)
 	{
 		delete (usrGameController*)usrGC; //delete并不会清空指针,需要为指针指定类型才可以正确释放该实例
 		usrGC = nullptr;
+	}
+	if (usrSV != nullptr)
+	{
+		delete usrSV;
+		usrSV = nullptr;
 	}
 #endif
 }

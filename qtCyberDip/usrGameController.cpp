@@ -1,6 +1,8 @@
 #include "usrGameController.h"
 
 #ifdef VIA_OPENCV
+
+
 //构造与初始化
 usrGameController::usrGameController(void* qtCD)
 {
@@ -8,6 +10,7 @@ usrGameController::usrGameController(void* qtCD)
 	device = new deviceCyberDip(qtCD);//设备代理类
 	cv::namedWindow(WIN_NAME);
 	cv::setMouseCallback(WIN_NAME, mouseCallback, (void*)&(argM));
+
 }
 
 //析构
@@ -110,3 +113,5 @@ void mouseCallback(int event, int x, int y, int flags, void*param)
 	}
 }
 #endif
+
+
