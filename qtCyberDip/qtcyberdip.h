@@ -139,8 +139,8 @@ private:
 	QThread camThread;
 	/*******OPEN_CV的相关变量与方法*******/
 #ifdef VIA_OPENCV
-	cv::Mat QImage2cvMat(QImage image);
-	QImage cvMat2QImage(cv::Mat image);
+	cv::Mat QImage2cvMat(QImage& image);
+	QImage cvMat2QImage(cv::Mat & inMat);
 	//游戏逻辑与图像识别类
 	void* usrGC = nullptr;
 #endif
