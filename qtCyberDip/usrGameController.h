@@ -34,6 +34,8 @@ public:
 	~usrGameController();
 	//处理图像函数，每次收到图像时都会调用
 	int usrProcessImage(cv::Mat& img);
+	//显示图像函数，每次收到图像时都会调用，用于在QTUI中做有意义的标记
+	cv::Mat usrDisplayImage(cv::Mat& img);
 };
 
 //以下是为了实现演示效果，增加的内容

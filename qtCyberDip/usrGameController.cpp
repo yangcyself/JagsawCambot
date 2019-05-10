@@ -59,6 +59,16 @@ int usrGameController::usrProcessImage(cv::Mat& img)
 	return 0; 
 }
 
+
+cv::Mat usrGameController::usrDisplayImage(cv::Mat& img)
+{
+	using namespace cv;
+	Mat out = img.clone();
+	cv::line(out, Point(10, 10), Point(100, 100), Scalar(0, 255, 0), 1);
+	return out;
+}
+
+
 //鼠标回调函数
 void mouseCallback(int event, int x, int y, int flags, void*param)
 {

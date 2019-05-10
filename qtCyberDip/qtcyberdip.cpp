@@ -1171,12 +1171,20 @@ void qtCyberDip::processImg(QImage img)
 	}
 	if (ptr == camPF)
 	{
+#ifdef VIA_OPENCV
+	if (usrGC != nullptr)
+	{
+		QImage tmpimg  = cvMat2QImage( ((usrGameController*)usrGC)->usrDisplayImage(QImage2cvMat(img)));
+		ui->camDisplay->setImage(tmpimg);
+	}
+#else
 		ui->camDisplay->setImage(img);
+#endif 
 	}
 #ifdef VIA_OPENCV
 	if (usrGC != nullptr)
 	{
-		((usrGameController*)usrGC)->usrProcessImage(QImage2cvMcaat(img));
+		((usrGameController*)usrGC)->usrProcessImage(QImage2cvMat(img));
 	}
 #endif
 }
@@ -1203,6 +1211,52 @@ cv::Mat qtCyberDip::QImage2cvMat(QImage image)
 	}
 	return mat;
 }
+
+QImage qtCyberDip::cvMat2QImage(cv::Mat inMat)
+{
+	switch (inMat.type())
+	{
+		// 8-bit, 4 channel
+	case CV_8UC4:
+	{
+		QImage image(inMat.data,
+			inMat.cols, inMat.rows,
+			static_cast<int>(inMat.step),
+			QImage::Format_ARGB32);
+
+		return image;
+	}
+
+	// 8-bit, 3 channel
+	case CV_8UC3:
+	{
+		QImage image(inMat.data,
+			inMat.cols, inMat.rows,
+			static_cast<int>(inMat.step),
+			QImage::Format_RGB888);
+
+		return image.rgbSwapped();
+	}
+
+	// 8-bit, 1 channel
+	case CV_8UC1:
+	{
+		QImage image(inMat.data,
+			inMat.cols, inMat.rows,
+			static_cast<int>(inMat.step),
+			QImage::Format_Grayscale8);
+		return image;
+	}
+
+	default:
+		qWarning() << "ASM::cvMatToQImage() - cv::Mat image type not handled in switch:" << inMat.type();
+		break;
+	}
+
+	return QImage();
+}
+
+
 
 void deviceCyberDip::comRequestToSend(QString txt)
 {
