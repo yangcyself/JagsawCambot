@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "usrServer.h"
 
-
 #define	BUF_SIZE	1024
 #define PORT_		19876
 

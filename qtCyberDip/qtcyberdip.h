@@ -8,7 +8,7 @@
 #include "capScreenForm.h"
 #include "vodPlayer.h"
 #include "camPlayer.h"
-#include "usrServer.h"
+
 #include <QtNetwork/QUdpSocket>
 #include <QCameraInfo>
 
@@ -146,7 +146,7 @@ private:
 	//游戏逻辑与图像识别类
 	void* usrGC = nullptr;
 	//游戏服务器类
-	usrServer* usrSV = nullptr;
+	void* usrSV = nullptr;
 	QThread sevThread;
 #endif
 };

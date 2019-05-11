@@ -6,6 +6,7 @@
 #ifdef VIA_OPENCV
 #include "usrGameController.h"
 #endif
+#include "usrServer.h"
 
 qtCyberDip::qtCyberDip(QWidget *parent) :
 QMainWindow(parent),
@@ -66,8 +67,8 @@ comSPH(nullptr), comPosX(0), comPosY(0), comIsDown(false), comFetch(false)
 			usrGC = new usrGameController(this);
 #endif
 			usrSV = new usrServer((usrGameController*)usrGC);
-			usrSV->moveToThread(&sevThread);
-			connect(&sevThread, SIGNAL(started()), usrSV, SLOT(ServerRun()), Qt::QueuedConnection);
+			((usrServer*)usrSV)->moveToThread(&sevThread);
+			connect(&sevThread, SIGNAL(started()), ((usrServer*)usrSV), SLOT(ServerRun()), Qt::QueuedConnection);
 			sevThread.start();
 		}
 	}
@@ -1175,7 +1176,7 @@ void qtCyberDip::formCleanning()
 			sevThread.exit();
 			sevThread.wait();
 		}
-		delete usrSV;
+		delete (usrServer*)usrSV;
 		usrSV = nullptr;
 	}
 #ifdef VIA_OPENCV
@@ -1183,11 +1184,6 @@ void qtCyberDip::formCleanning()
 	{
 		delete (usrGameController*)usrGC; //delete并不会清空指针,需要为指针指定类型才可以正确释放该实例
 		usrGC = nullptr;
-	}
-	if (usrSV != nullptr)
-	{
-		delete usrSV;
-		usrSV = nullptr;
 	}
 #endif
 }
