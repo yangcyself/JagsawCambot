@@ -125,9 +125,6 @@
     <ClCompile Include="GeneratedFiles\Release\moc_usrServer.cpp">
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
-    <ClCompile Include="usrServer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="qtcyberdip.h">
@@ -164,9 +161,6 @@
       <Filter>Header Files</Filter>
     </CustomBuild>
     <CustomBuild Include="camPlayer.h">
-      <Filter>Header Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="usrServer.h">
       <Filter>Header Files</Filter>
     </CustomBuild>
   </ItemGroup>
