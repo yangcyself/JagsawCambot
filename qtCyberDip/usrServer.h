@@ -3,22 +3,58 @@
 
 #include "stdafx.h"
 #include "usrGameController.h"
+
+/*
+using MS
+*/
+
 //#include <QObject>
-#pragma comment(lib,"ws2_32.lib") //Winsock Library
+// #pragma comment(lib,"ws2_32.lib") //Winsock Library
+
+// class usrServer : public QObject
+// {
+// 	Q_OBJECT;
+// private:
+// 	usrGameController* controller;
+
+
+// public:
+// 	usrServer(usrGameController* GC);
+// 	~usrServer();
+
+// public slots:
+// 	void ServerRun();
+// };
+
+// #endif
+
+/*
+using QT udp
+*/
+
+
+// myudp.h
+
+
+#include <QObject>
+#include <QUdpSocket>
+#include <QDataStream>
 
 class usrServer : public QObject
 {
-	Q_OBJECT;
-private:
-	usrGameController* controller;
-
-
+	Q_OBJECT
 public:
-	usrServer(usrGameController* GC);
-	~usrServer();
+	explicit usrServer(usrGameController* GC = nullptr);
+
+signals:
 
 public slots:
-	void ServerRun();
+	void readyRead();
+
+private:
+	QUdpSocket *socket;
+	usrGameController* controller;
+
 };
 
-#endif
+#endif // MYUDP_H
