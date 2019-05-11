@@ -6,7 +6,7 @@
 #ifdef VIA_OPENCV
 #include "usrGameController.h"
 #endif
-#include "usrServer.h"
+//#include "usrServer.h"
 
 qtCyberDip::qtCyberDip(QWidget *parent) :
 QMainWindow(parent),
@@ -58,20 +58,18 @@ comSPH(nullptr), comPosX(0), comPosY(0), comIsDown(false), comFetch(false)
 	ui->camSelList->installEventFilter(this);
 	//     | Who sends event &&         | Who will watch event
 
-	if(usrSV == nullptr)
-	{
-		int index = ui->camSelList->currentIndex();
-		if (index >= 0 && index < camDevices.length())
-		{
-#ifdef VIA_OPENCV 
-			usrGC = new usrGameController(this);
-#endif
-			usrSV = new usrServer((usrGameController*)usrGC);
-			((usrServer*)usrSV)->moveToThread(&sevThread);
-			connect(&sevThread, SIGNAL(started()), ((usrServer*)usrSV), SLOT(ServerRun()), Qt::QueuedConnection);
-			sevThread.start();
-		}
-	}
+
+	// Set up Server socket
+	socket = new QUdpSocket(this);
+
+	// The most common way to use QUdpSocket class is 
+	// to bind to an address and port using bind()
+	// bool QAbstractSocket::bind(const QHostAddress & address, 
+	//     quint16 port = 0, BindMode mode = DefaultForPlatform)
+	socket->bind(QHostAddress::LocalHost, 19876);
+
+	connect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
+
 
 	startTimer(500);
 }
@@ -1169,16 +1167,6 @@ void qtCyberDip::formCleanning()
 		camPF = nullptr;
 	}
 	camUpdateUI();
-	if (usrSV != nullptr)
-	{
-		if (sevThread.isRunning())
-		{
-			sevThread.exit();
-			sevThread.wait();
-		}
-		delete (usrServer*)usrSV;
-		usrSV = nullptr;
-	}
 #ifdef VIA_OPENCV
 	if (usrGC != nullptr)
 	{
@@ -1282,7 +1270,44 @@ QImage qtCyberDip::cvMat2QImage(cv::Mat& inMat)
 	return QImage();
 }
 
+void qtCyberDip::readyRead()
+{
+	// when data comes in
+	QByteArray buffer;
+	buffer.resize(socket->pendingDatagramSize());
 
+	QHostAddress sender;
+	quint16 senderPort;
+
+	// qint64 QUdpSocket::readDatagram(char * data, qint64 maxSize, 
+	//                 QHostAddress * address = 0, quint16 * port = 0)
+	// Receives a datagram no larger than maxSize bytes and stores it in data. 
+	// The sender's host address and port is stored in *address and *port 
+	// (unless the pointers are 0).
+
+	socket->readDatagram(buffer.data(), buffer.size(),
+		&sender, &senderPort);
+
+	if (senderPort == 19876)
+		return;
+
+	qDebug() << "Message from: " << sender.toString();
+	qDebug() << "Message port: " << senderPort;
+	qDebug() << "Message: " << buffer;
+
+	//QByteArray Data;
+
+	//Data.append("Hello from UDP");
+	//socket->writeDatagram(Data, QHostAddress::LocalHost, senderPort);
+
+
+	QByteArray datagram;
+	QDataStream out(&datagram, QIODevice::WriteOnly);
+	out.setVersion(QDataStream::Qt_4_3);
+	out << "Hello From Server";
+
+	socket->writeDatagram(datagram, QHostAddress::LocalHost, senderPort);
+}
 
 void deviceCyberDip::comRequestToSend(QString txt)
 {

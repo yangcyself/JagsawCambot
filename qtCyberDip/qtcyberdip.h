@@ -19,6 +19,11 @@
 #include <opencv\highgui.h>
 #endif
 
+#ifdef VIA_UDP
+#include <QUdpSocket>
+#include <QDataStream>
+#endif
+
 namespace Ui {
 	class qtCyberDip;
 }
@@ -84,7 +89,10 @@ public slots:
 	void comDeviceDelay(float delay);
 	void formClosed();//清理并显示主窗口
 	void formCleanning();//只清理，不显示主窗口
+	void readyRead();
 
+
+	
 private:
 	Ui::qtCyberDip *ui;
 	/*******BBQ相关变量与方法*******/
@@ -140,14 +148,16 @@ private:
 	camPlayer* camPF = nullptr;
 	QThread camThread;
 	/*******OPEN_CV的相关变量与方法*******/
+	
 #ifdef VIA_OPENCV
 	cv::Mat QImage2cvMat(QImage& image);
 	QImage cvMat2QImage(cv::Mat & inMat);
 	//游戏逻辑与图像识别类
 	void* usrGC = nullptr;
-	//游戏服务器类
-	void* usrSV = nullptr;
-	QThread sevThread;
+#endif
+#ifdef VIA_UDP
+	/*******UDP的相关变量与方法*******/
+	QUdpSocket *socket;
 #endif
 };
 
