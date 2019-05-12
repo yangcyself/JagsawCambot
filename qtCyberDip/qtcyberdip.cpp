@@ -66,7 +66,7 @@ comSPH(nullptr), comPosX(0), comPosY(0), comIsDown(false), comFetch(false)
 	// to bind to an address and port using bind()
 	// bool QAbstractSocket::bind(const QHostAddress & address, 
 	//     quint16 port = 0, BindMode mode = DefaultForPlatform)
-	socket->bind(QHostAddress::LocalHost, 19876);
+	socket->bind(QHostAddress::LocalHost, SVPORT);
 
 	connect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
 
@@ -207,7 +207,7 @@ void qtCyberDip::bbqClickConnect()
 	// The IP is valid, connect to there
 	bbqSF = new bbqScreenForm(this);
 #ifdef VIA_OPENCV
-	//usrGC = new usrGameController(this);
+	usrGC = new usrGameController(this);
 	connect(bbqSF, SIGNAL(imgReady(QImage)), this, SLOT(processImg(QImage)));
 #endif
 	connect(bbqSF, SIGNAL(bbqFinished()), this, SLOT(formClosed()), Qt::QueuedConnection);
@@ -959,7 +959,7 @@ void qtCyberDip::capClickConnect()
 	}
 	capSF = new capScreenForm(this);
 #ifdef VIA_OPENCV
-	// usrGC = new usrGameController(this);
+	usrGC = new usrGameController(this);
 	connect(capSF, SIGNAL(imgReady(QImage)), this, SLOT(processImg(QImage)));
 #endif
 	connect(capSF, SIGNAL(capFinished()), this, SLOT(formClosed()), Qt::QueuedConnection);
@@ -1000,7 +1000,7 @@ void qtCyberDip::vodClickPlayButton()
 		}
 		vodPF = new vodPlayer(path);
 #ifdef VIA_OPENCV
-		//usrGC = new usrGameController(this);
+		usrGC = new usrGameController(this);
 #endif
 		vodPF->moveToThread(&vodThread);
 		//vodPF->setPath(path);
@@ -1077,7 +1077,7 @@ void qtCyberDip::camClickOpenButton(){
 		{
 			camPF = new camPlayer(camDevices[index].description());
 #ifdef VIA_OPENCV
-			// usrGC = new usrGameController(this);
+			usrGC = new usrGameController(this);
 #endif
 			camPF->moveToThread(&camThread);
 			connect(camPF, SIGNAL(camFinished()), this, SLOT(formCleanning()), Qt::QueuedConnection);
@@ -1190,6 +1190,9 @@ void qtCyberDip::processImg(QImage img)
 	if (usrGC != nullptr)
 	{
 		QImage tmpimg  = cvMat2QImage( ((usrGameController*)usrGC)->usrDisplayImage(QImage2cvMat(img)));
+		//cv::Mat i = QImage2cvMat(img);
+
+		//qDebug() << i.cols << " " << i.rows;
 		ui->camDisplay->setImage(tmpimg);
 	}
 #else
@@ -1270,6 +1273,15 @@ QImage qtCyberDip::cvMat2QImage(cv::Mat& inMat)
 	return QImage();
 }
 
+
+struct actionPak
+{
+	char M;
+	int action;
+	int x;
+	int y;
+};
+
 void qtCyberDip::readyRead()
 {
 	// when data comes in
@@ -1288,7 +1300,7 @@ void qtCyberDip::readyRead()
 	socket->readDatagram(buffer.data(), buffer.size(),
 		&sender, &senderPort);
 
-	if (senderPort == 19876)
+	if (senderPort == SVPORT)
 		return;
 
 	qDebug() << "Message from: " << sender.toString();
@@ -1299,13 +1311,78 @@ void qtCyberDip::readyRead()
 
 	//Data.append("Hello from UDP");
 	//socket->writeDatagram(Data, QHostAddress::LocalHost, senderPort);
-
-
 	QByteArray datagram;
 	QDataStream out(&datagram, QIODevice::WriteOnly);
-	out.setVersion(QDataStream::Qt_4_3);
-	out << "Hello From Server";
+	//out.setVersion(QDataStream::Qt_4_3);
 
+	if (buffer == "hello") {
+		out << "Hello From Server";
+		//datagram.append("Hello From Server");
+	}
+	else if (buffer == "GET") {
+		//out << "Give you";
+		using namespace cv; {
+			cv::Mat image = ((usrGameController*)usrGC)->currentImage();
+			int n = 0;
+			int x = image.rows;
+			int y = image.cols;
+			out << x<< y<< 3;
+			for (int i = 0; i < x; i++) {
+				for (int j = 0; j < y; j++) {
+					for (int k = 0; k < 3; k++) {
+						out << image.data[n];
+						++n;
+					}
+				}
+				qDebug() << i;
+			}
+			//datagram.append( atom_image.data);
+		}
+	}
+	else if (buffer[0] == 'M') {
+		//out << "command " << buffer;
+		actionPak* pakPt = reinterpret_cast<actionPak*>(buffer.data());
+		qDebug() << pakPt->M  << pakPt->action;
+		int action = pakPt->action;
+		double x = pakPt->x;
+		double y = pakPt->y;
+		out << pakPt->M << " " << QString::number(action) << " " << QString::number(x) << " " << QString::number(y);
+		switch (action)
+		{
+		case 0:
+			comMoveTo(comPosX + x, comPosY + y);
+			qDebug() << "move relative, cur pos: "<<comPosX<<" "<<comPosY ;
+			break;
+		case 1:
+			comMoveTo( x, y);
+			qDebug() << "move definative, cur pos: " << comPosX << " " << comPosY;
+			break;
+		case 2:
+			qDebug() << "hit Once" ;
+			comHitOnce();
+			break;
+		case 3:
+			qDebug() << "hit up";
+			comHitUp();
+			break;
+		case 4:
+			qDebug() << "hit Once";
+			comHitDown();
+			break;
+		default:
+			break;
+		}
+	}
+	else if (buffer == "GetPos") {
+		int x = comPosX;
+		int y = comPosY;
+		//out << x << y<< comIsDown;
+		out << comPosX << comPosY << comIsDown;
+		qDebug() << "GetPos";
+	}
+	else {
+		out << "Undefined message";
+	}
 	socket->writeDatagram(datagram, QHostAddress::LocalHost, senderPort);
 }
 

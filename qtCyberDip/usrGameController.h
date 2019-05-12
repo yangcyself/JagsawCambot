@@ -18,6 +18,7 @@
 class usrGameController
 {
 private:
+	cv::Mat currentFrame;
 	deviceCyberDip* device;
 //以下是为了实现演示效果，增加的内容
 	//鼠标回调结构体
@@ -45,6 +46,7 @@ public:
 	int usrProcessImage(cv::Mat& img);
 	//显示图像函数，每次收到图像时都会调用，用于在QTUI中做有意义的标记
 	cv::Mat usrDisplayImage(cv::Mat& img);
+	cv::Mat currentImage();
 
 };
 
