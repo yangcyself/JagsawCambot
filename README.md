@@ -1,4 +1,5 @@
-# qtCyberDIP
+# JagsawCambot
+A course project for SJTU EE356. Using a robot to play Jagsaw puzzle on a phone, via camera
 ![CyberDIP](/pic/CyberDIP.png)
 
 CyberDIP driver for windows in C++ 11.
