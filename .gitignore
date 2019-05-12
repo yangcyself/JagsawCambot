@@ -8,3 +8,8 @@
 *.opensdf
 *.suo
 qtCyberDip.sln
+temp_config.vcxproj
+.vs/*
+.vscode/*
+pyCyberCtl/__pycache__/*
+qtCyberDip/QTFFmpegWrapper/*
