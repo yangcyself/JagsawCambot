@@ -1311,12 +1311,12 @@ void qtCyberDip::readyRead()
 
 	//Data.append("Hello from UDP");
 	//socket->writeDatagram(Data, QHostAddress::LocalHost, senderPort);
-	QByteArray datagram;
-	QDataStream out(&datagram, QIODevice::WriteOnly);
+	QByteArray* datagram = new QByteArray();
+	QDataStream* out = new QDataStream(datagram, QIODevice::WriteOnly);
 	//out.setVersion(QDataStream::Qt_4_3);
 
 	if (buffer == "hello") {
-		out << "Hello From Server";
+		*out << "Hello From Server";
 		//datagram.append("Hello From Server");
 	}
 	else if (buffer == "GET") {
@@ -1326,15 +1326,25 @@ void qtCyberDip::readyRead()
 			int n = 0;
 			int x = image.rows;
 			int y = image.cols;
-			out << x<< y<< 3;
-			for (int i = 0; i < x; i++) {
-				for (int j = 0; j < y; j++) {
-					for (int k = 0; k < 3; k++) {
-						out << image.data[n];
-						++n;
-					}
+			*out << x<< y<< 3;
+			int count = 0;
+			for (int n = 0; n < x*y*3;  n++) {
+				*out << image.data[n];
+				if (++count >= SVBUFFERSIZE) {
+					count = 0;
+					socket->writeDatagram(*datagram, QHostAddress::LocalHost, senderPort);
+					delete datagram;
+					delete out;
+					datagram = new QByteArray();
+					//out = QDataStream(&datagram, QIODevice::WriteOnly);
+					out = new QDataStream(datagram, QIODevice::WriteOnly);
 				}
-				qDebug() << i;
+			}
+			//qDebug() << "count: " << count;
+			if (count == 0) {
+				delete datagram;
+				delete out;
+				return;
 			}
 			//datagram.append( atom_image.data);
 		}
@@ -1346,7 +1356,7 @@ void qtCyberDip::readyRead()
 		int action = pakPt->action;
 		double x = pakPt->x;
 		double y = pakPt->y;
-		out << pakPt->M << " " << QString::number(action) << " " << QString::number(x) << " " << QString::number(y);
+		*out << pakPt->M << " " << QString::number(action) << " " << QString::number(x) << " " << QString::number(y);
 		switch (action)
 		{
 		case 0:
@@ -1377,13 +1387,15 @@ void qtCyberDip::readyRead()
 		int x = comPosX;
 		int y = comPosY;
 		//out << x << y<< comIsDown;
-		out << comPosX << comPosY << comIsDown;
+		*out << comPosX << comPosY << comIsDown;
 		qDebug() << "GetPos";
 	}
 	else {
-		out << "Undefined message";
+		*out << "Undefined message";
 	}
-	socket->writeDatagram(datagram, QHostAddress::LocalHost, senderPort);
+	socket->writeDatagram(*datagram, QHostAddress::LocalHost, senderPort);
+	delete datagram;
+	delete out;
 }
 
 void deviceCyberDip::comRequestToSend(QString txt)
