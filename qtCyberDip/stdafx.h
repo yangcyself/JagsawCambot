@@ -18,10 +18,13 @@
 //*************************相关定义*****************************//
 //************************Definitions***************************//
 
-//#define VIA_OPENCV
+#define VIA_OPENCV
+#define VIA_UDP
 #define RANGE_X 1
 #define RANGE_Y 1
 #define UP_CUT 0.0
+#define SVPORT 19876
+#define SVBUFFERSIZE 30000
 
 //*************************使用说明*****************************//
 //************************Instruction***************************//

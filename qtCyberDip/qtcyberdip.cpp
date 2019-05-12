@@ -6,6 +6,7 @@
 #ifdef VIA_OPENCV
 #include "usrGameController.h"
 #endif
+//#include "usrServer.h"
 
 qtCyberDip::qtCyberDip(QWidget *parent) :
 QMainWindow(parent),
@@ -56,6 +57,19 @@ comSPH(nullptr), comPosX(0), comPosY(0), comIsDown(false), comFetch(false)
 	ui->comSelList->installEventFilter(this);
 	ui->camSelList->installEventFilter(this);
 	//     | Who sends event &&         | Who will watch event
+
+
+	// Set up Server socket
+	socket = new QUdpSocket(this);
+
+	// The most common way to use QUdpSocket class is 
+	// to bind to an address and port using bind()
+	// bool QAbstractSocket::bind(const QHostAddress & address, 
+	//     quint16 port = 0, BindMode mode = DefaultForPlatform)
+	socket->bind(QHostAddress::LocalHost, SVPORT);
+
+	connect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
+
 
 	startTimer(500);
 }
@@ -1171,18 +1185,30 @@ void qtCyberDip::processImg(QImage img)
 	}
 	if (ptr == camPF)
 	{
+#ifdef VIA_OPENCV
+
+	if (usrGC != nullptr)
+	{
+		QImage tmpimg  = cvMat2QImage( ((usrGameController*)usrGC)->usrDisplayImage(QImage2cvMat(img)));
+		//cv::Mat i = QImage2cvMat(img);
+
+		//qDebug() << i.cols << " " << i.rows;
+		ui->camDisplay->setImage(tmpimg);
+	}
+#else
 		ui->camDisplay->setImage(img);
+#endif 
 	}
 #ifdef VIA_OPENCV
 	if (usrGC != nullptr)
 	{
-		((usrGameController*)usrGC)->usrProcessImage(QImage2cvMcaat(img));
+		((usrGameController*)usrGC)->usrProcessImage(QImage2cvMat(img));
 	}
 #endif
 }
 
 #ifdef VIA_OPENCV
-cv::Mat qtCyberDip::QImage2cvMat(QImage image)
+cv::Mat qtCyberDip::QImage2cvMat(QImage& image)
 {
 	cv::Mat mat;
 	//qDebug() << image.format();
@@ -1202,6 +1228,174 @@ cv::Mat qtCyberDip::QImage2cvMat(QImage image)
 		break;
 	}
 	return mat;
+}
+
+
+QImage qtCyberDip::cvMat2QImage(cv::Mat& inMat)
+{
+	switch (inMat.type())
+	{
+		// 8-bit, 4 channel
+	case CV_8UC4:
+	{
+		QImage image(inMat.data,
+			inMat.cols, inMat.rows,
+			static_cast<int>(inMat.step),
+			QImage::Format_ARGB32);
+		return image;
+	}
+
+	// 8-bit, 3 channel
+	case CV_8UC3:
+	{
+		QImage image(inMat.data,
+			inMat.cols, inMat.rows,
+			static_cast<int>(inMat.step),
+			QImage::Format_RGB888);
+		return image.rgbSwapped();
+	}
+
+	// 8-bit, 1 channel
+	case CV_8UC1:
+	{
+		QImage image(inMat.data,
+			inMat.cols, inMat.rows,
+			static_cast<int>(inMat.step),
+			QImage::Format_Grayscale8);
+		return image;
+	}
+
+	default:
+		qWarning() << "ASM::cvMatToQImage() - cv::Mat image type not handled in switch:" << inMat.type();
+		break;
+	}
+	inMat.release();
+	return QImage();
+}
+
+
+struct actionPak
+{
+	char M;
+	int action;
+	int x;
+	int y;
+};
+
+void qtCyberDip::readyRead()
+{
+	// when data comes in
+	QByteArray buffer;
+	buffer.resize(socket->pendingDatagramSize());
+
+	QHostAddress sender;
+	quint16 senderPort;
+
+	// qint64 QUdpSocket::readDatagram(char * data, qint64 maxSize, 
+	//                 QHostAddress * address = 0, quint16 * port = 0)
+	// Receives a datagram no larger than maxSize bytes and stores it in data. 
+	// The sender's host address and port is stored in *address and *port 
+	// (unless the pointers are 0).
+
+	socket->readDatagram(buffer.data(), buffer.size(),
+		&sender, &senderPort);
+
+	if (senderPort == SVPORT)
+		return;
+
+	qDebug() << "Message from: " << sender.toString();
+	qDebug() << "Message port: " << senderPort;
+	qDebug() << "Message: " << buffer;
+
+	//QByteArray Data;
+
+	//Data.append("Hello from UDP");
+	//socket->writeDatagram(Data, QHostAddress::LocalHost, senderPort);
+	QByteArray* datagram = new QByteArray();
+	QDataStream* out = new QDataStream(datagram, QIODevice::WriteOnly);
+	//out.setVersion(QDataStream::Qt_4_3);
+
+	if (buffer == "hello") {
+		*out << "Hello From Server";
+		//datagram.append("Hello From Server");
+	}
+	else if (buffer == "GET") {
+		//out << "Give you";
+		using namespace cv; {
+			cv::Mat image = ((usrGameController*)usrGC)->currentImage();
+			int n = 0;
+			int x = image.rows;
+			int y = image.cols;
+			*out << x<< y<< 3;
+			int count = 0;
+			for (int n = 0; n < x*y*3;  n++) {
+				*out << image.data[n];
+				if (++count >= SVBUFFERSIZE) {
+					count = 0;
+					socket->writeDatagram(*datagram, QHostAddress::LocalHost, senderPort);
+					delete datagram;
+					delete out;
+					datagram = new QByteArray();
+					//out = QDataStream(&datagram, QIODevice::WriteOnly);
+					out = new QDataStream(datagram, QIODevice::WriteOnly);
+				}
+			}
+			//qDebug() << "count: " << count;
+			if (count == 0) {
+				delete datagram;
+				delete out;
+				return;
+			}
+			//datagram.append( atom_image.data);
+		}
+	}
+	else if (buffer[0] == 'M') {
+		//out << "command " << buffer;
+		actionPak* pakPt = reinterpret_cast<actionPak*>(buffer.data());
+		qDebug() << pakPt->M  << pakPt->action;
+		int action = pakPt->action;
+		double x = pakPt->x;
+		double y = pakPt->y;
+		*out << pakPt->M << " " << QString::number(action) << " " << QString::number(x) << " " << QString::number(y);
+		switch (action)
+		{
+		case 0:
+			comMoveTo(comPosX + x, comPosY + y);
+			qDebug() << "move relative, cur pos: "<<comPosX<<" "<<comPosY ;
+			break;
+		case 1:
+			comMoveTo( x, y);
+			qDebug() << "move definative, cur pos: " << comPosX << " " << comPosY;
+			break;
+		case 2:
+			qDebug() << "hit Once" ;
+			comHitOnce();
+			break;
+		case 3:
+			qDebug() << "hit up";
+			comHitUp();
+			break;
+		case 4:
+			qDebug() << "hit Once";
+			comHitDown();
+			break;
+		default:
+			break;
+		}
+	}
+	else if (buffer == "GetPos") {
+		int x = comPosX;
+		int y = comPosY;
+		//out << x << y<< comIsDown;
+		*out << comPosX << comPosY << comIsDown;
+		qDebug() << "GetPos";
+	}
+	else {
+		*out << "Undefined message";
+	}
+	socket->writeDatagram(*datagram, QHostAddress::LocalHost, senderPort);
+	delete datagram;
+	delete out;
 }
 
 void deviceCyberDip::comRequestToSend(QString txt)

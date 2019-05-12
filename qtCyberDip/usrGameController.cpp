@@ -1,6 +1,8 @@
 #include "usrGameController.h"
 
 #ifdef VIA_OPENCV
+
+
 //构造与初始化
 usrGameController::usrGameController(void* qtCD)
 {
@@ -8,6 +10,23 @@ usrGameController::usrGameController(void* qtCD)
 	device = new deviceCyberDip(qtCD);//设备代理类
 	cv::namedWindow(WIN_NAME);
 	cv::setMouseCallback(WIN_NAME, mouseCallback, (void*)&(argM));
+	
+	int w = 100;
+	//cv::Mat atom_image = cv::Mat::zeros(100, 100, CV_8UC3);
+
+	cv::Mat atom_image = cv::Mat::zeros(600, 800, CV_8UC3);
+	cv::ellipse(atom_image,
+		cv::Point(w / 2, w / 2),
+		cv::Size(w / 4, w / 16),
+		90,
+		0,
+		360,
+		cv::Scalar(255, 0, 0),
+		2,
+		8);
+	
+	currentFrame = atom_image;
+
 }
 
 //析构
@@ -59,6 +78,33 @@ int usrGameController::usrProcessImage(cv::Mat& img)
 	return 0; 
 }
 
+
+cv::Mat usrGameController::usrDisplayImage(cv::Mat& img)
+{
+	using namespace cv;
+	assert(img.type() == CV_8UC3);
+
+	//currentFrame = img;
+	int n = 0;
+	for (int i = 0; i < currentFrame.rows; i++) {
+		for (int j = 0; j < currentFrame.cols; j++) {
+			for (int k = 0; k < 3; k++) {
+				currentFrame.data[n] = img.data[n];
+				++n;
+			}
+		}
+	}
+	Mat out = img.clone();
+	cv::line(out, Point(10, 10), Point(100, 100), Scalar(0, 255, 0), 1);
+	return out;
+}
+
+cv::Mat usrGameController::currentImage()
+{
+	return currentFrame;
+}
+
+
 //鼠标回调函数
 void mouseCallback(int event, int x, int y, int flags, void*param)
 {
@@ -100,3 +146,5 @@ void mouseCallback(int event, int x, int y, int flags, void*param)
 	}
 }
 #endif
+
+

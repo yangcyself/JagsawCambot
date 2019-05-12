@@ -8,13 +8,20 @@
 #include "capScreenForm.h"
 #include "vodPlayer.h"
 #include "camPlayer.h"
+
 #include <QtNetwork/QUdpSocket>
 #include <QCameraInfo>
+
 
 #ifdef VIA_OPENCV
 #include <opencv2\opencv.hpp>
 #include <opencv\cv.h>
 #include <opencv\highgui.h>
+#endif
+
+#ifdef VIA_UDP
+#include <QUdpSocket>
+#include <QDataStream>
 #endif
 
 namespace Ui {
@@ -82,7 +89,10 @@ public slots:
 	void comDeviceDelay(float delay);
 	void formClosed();//清理并显示主窗口
 	void formCleanning();//只清理，不显示主窗口
+	void readyRead();
 
+
+	
 private:
 	Ui::qtCyberDip *ui;
 	/*******BBQ相关变量与方法*******/
@@ -138,14 +148,21 @@ private:
 	camPlayer* camPF = nullptr;
 	QThread camThread;
 	/*******OPEN_CV的相关变量与方法*******/
+	
 #ifdef VIA_OPENCV
-	cv::Mat QImage2cvMat(QImage image);
+	cv::Mat QImage2cvMat(QImage& image);
+	QImage cvMat2QImage(cv::Mat & inMat);
 	//游戏逻辑与图像识别类
 	void* usrGC = nullptr;
+#endif
+#ifdef VIA_UDP
+	/*******UDP的相关变量与方法*******/
+	QUdpSocket *socket;
 #endif
 };
 
 #ifdef VIA_OPENCV
+
 class deviceCyberDip
 {
 private:
