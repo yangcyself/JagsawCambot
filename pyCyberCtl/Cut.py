@@ -32,8 +32,8 @@ def rotate(img,center,angle):
    
     return dst
 
-def get_Contour(img):
-    #边缘
+
+def get_Gradient(img):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     gradX = cv2.Sobel(gray, ddepth=cv2.CV_32F, dx=1, dy=0, ksize=-1)
     gradY = cv2.Sobel(gray, ddepth=cv2.CV_32F, dx=0, dy=1, ksize=-1)
@@ -42,12 +42,19 @@ def get_Contour(img):
     gradient = cv2.subtract(gradX, gradY)
     gradient = cv2.convertScaleAbs(gradient)
 
+    return gradient
+
+
+def get_Contour(img):
+    #边缘
+    gradient = get_Gradient(img)
     #高斯平滑&阈值分割
     blurred = cv2.blur(gradient, (9, 9))
     (_, thresh) = cv2.threshold(blurred, 90, 255, cv2.THRESH_BINARY)
 
     #检测并画出轮廓
-    image, contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    # image, contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
     c = sorted(contours, key=cv2.contourArea, reverse=True)[0]
 
     # compute the rotated bounding box of the largest contour
@@ -78,10 +85,9 @@ def get_Contour(img):
     #裁剪
 
     cut = r[int(center[1]-height/2):int(center[1]+height/2),int(center[0]-width/2):int(center[0]+width/2)]
-    cv2.imshow("cut", cut)
-    cv2.waitKey(0)
+    # cv2.imshow("cut", cut)
+    # cv2.waitKey(0)
     return cut
-
 
 
 
