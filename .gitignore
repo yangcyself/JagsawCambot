@@ -13,3 +13,8 @@ temp_config.vcxproj
 .vscode/*
 pyCyberCtl/__pycache__/*
 qtCyberDip/QTFFmpegWrapper/*
+pyCyberCtl/puzzles/*
+pyCyberCtl/exp.png
+pyCyberCtl/puzzles.rar
+pyCyberCtl/pads/*
+pyCyberCtl/*.rar
