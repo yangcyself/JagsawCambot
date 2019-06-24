@@ -12,20 +12,32 @@ def RGBEqualizeHist(target):
 
 def cutout_source(source,template):
     source = RGBEqualizeHist(source)
-    sAx = int(source.shape[1]*0.470)
-    sAy = int(source.shape[0]*0.343)
-    sBx = int(source.shape[1]*0.641)
-    sBy = int(source.shape[0]*0.667)
+    #sAx = int(source.shape[1]*0.470)
+    #sAy = int(source.shape[0]*0.343)
+    #sBx = int(source.shape[1]*0.641)
+    #sBy = int(source.shape[0]*0.667)
+    sAx = int(template.shape[1]*0.264)
+    sAy = int(template.shape[0]*0.138)
+    sBx = int(template.shape[1]*0.710)
+    sBy = int(template.shape[0]*0.833)
+
     source = source[sAy:sBy,sAx:sBx,:]
     return source
 
 def cutout_template_area(source,template):
     template = RGBEqualizeHist(template)
-    tAx = int(template.shape[1]*0.172)
-    tAy = int(template.shape[0]*0.144)
-    tBx = int(template.shape[1]*0.250)
-    tBy = int(template.shape[0]*0.799)
-
+    #tAx = int(template.shape[1]*0.172)
+    #tAy = int(template.shape[0]*0.144)
+    #tBx = int(template.shape[1]*0.250)
+    #tBy = int(template.shape[0]*0.799)
+    #114
+    #0.111
+    #201
+    #790
+    tAx = int(template.shape[1]*0.114)
+    tAy = int(template.shape[0]*0.111)
+    tBx = int(template.shape[1]*0.201)
+    tBy = int(template.shape[0]*0.850)
     temp = template[tAy:tBy,tAx:tBx,:]
     return temp
 
@@ -35,7 +47,7 @@ def cutout_template(source,template,temp_pos = None):
     #高斯平滑&阈值分割
     blurred = cv2.blur(gradient, (5, 5))
     _, thresh = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY)
-    contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    image,contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
     contours.sort(key=cv2.contourArea, reverse=True)
     if(temp_pos is None): # display mode
         out = temp.copy()
@@ -56,10 +68,14 @@ def cutout_template(source,template,temp_pos = None):
         return out
 
 def cutout_target(template):
-    DAx = int(template.shape[1]*0.303)
-    DAy = int(template.shape[0]*0.123)
-    DBx = int(template.shape[1]*0.696)
-    DBy = int(template.shape[0]*0.889)
+    #DAx = int(template.shape[1]*0.303)
+    #DAy = int(template.shape[0]*0.123)
+    #DBx = int(template.shape[1]*0.696)
+    #DBy = int(template.shape[0]*0.889)
+    DAx = int(template.shape[1]*0.264)
+    DAy = int(template.shape[0]*0.138)
+    DBx = int(template.shape[1]*0.710)
+    DBy = int(template.shape[0]*0.833)
     target = template[DAy:DBy,DAx:DBx,:]
     return target
 
@@ -75,19 +91,21 @@ def generateGaussianKernel(shape,u,cov):
 def matching(source,template,mode="match"):
     sor = cutout_source(source,template)
     
-    s_x = int(sor.shape[0]/3)
-    s_y = int(sor.shape[1]/3)
+    s_x = int(sor.shape[0]/5)
+    s_y = int(sor.shape[1]/5)
     
     temp_area = cutout_template_area(source,template)
     
     temp_pos = []
     temp = cutout_template(source,template,temp_pos)
-    temp_pos = (temp_pos[0]+20,temp_pos[1]+20) # change it into tuple 
+    #change 
+    
+    temp_pos = (temp_pos[0]+10,temp_pos[1]+10) # change it into tuple 
     tep = cv2.copyMakeBorder(temp,10,40,10,40,cv2.BORDER_CONSTANT,value=[0,0,0])
     
-    scores = np.zeros((3,3))
-    for i in range(3):
-        for j in range(3):
+    scores = np.zeros((5,5))
+    for i in range(5):
+        for j in range(5):
             img = sor[s_x*i:s_x*(i+1),s_y*j:s_y*(j+1),:]
 #             res = cv2.matchTemplate(tep,img,cv2.TM_CCORR_NORMED) #87.29 vs 85.55
 #             res = cv2.matchTemplate(tep,img,cv2.TM_CCORR) # 不好，倒数
@@ -100,18 +118,18 @@ def matching(source,template,mode="match"):
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
             scores[i,j] = max_val
     if(mode=="match"):
-        temp_pos = (temp_pos[0] + template.shape[1]*0.172 , temp_pos[1] + template.shape[0]*0.144) # add the temp area margin
+        temp_pos = (temp_pos[0] + template.shape[1]*0.114 , temp_pos[1] + template.shape[0]*0.111) # add the temp area margin
         return temp_pos, scores
 
-    source_x = np.argmax(scores)//3 # x => i 
-    source_y = np.argmax(scores)%3
+    source_x = np.argmax(scores)//5 # x => i 
+    source_y = np.argmax(scores)%5
     source_x *= s_x
     source_y *= s_y
 
     source_y += temp_area.shape[1]
     
     out = np.zeros( (max(temp_area.shape[0],sor.shape[0]),
-                        temp_area.shape[1]+sor.shape[1] ,3),dtype = np.uint8)
+                        temp_area.shape[1]+sor.shape[1] ,5),dtype = np.uint8)
     out[0:temp_area.shape[0],0:temp_area.shape[1] ,:] = temp_area
     out[0:sor.shape[0],temp_area.shape[1]:,:] = sor
     
@@ -142,11 +160,11 @@ def findEmpty(emptypic, targetpic,threshold = 100, mode = "release"):
     if(mode=="debug"):
         plt.imshow(fgmask)
         plt.show()
-    # cut it to be dividedable by 3
+    # cut it to be dividedable by 3 //5
     w,h = fgmask.shape
-    fgmask = fgmask[:(w//3)*3,:(h//3)*3]
-    wd,hd = int(fgmask.shape[0]/3),int(fgmask.shape[1]/3)  # the width and height eash small block
-    fgmask = fgmask.reshape((3,wd,3,hd))
+    fgmask = fgmask[:(w//5)*5,:(h//5)*5]
+    wd,hd = int(fgmask.shape[0]/5),int(fgmask.shape[1]/5)  # the width and height eash small block
+    fgmask = fgmask.reshape((5,wd,5,hd))
     fgmask = fgmask.mean(axis = 3)
     fgmask = fgmask.mean(axis = 1)
     print(fgmask)
