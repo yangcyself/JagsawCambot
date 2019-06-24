@@ -53,8 +53,8 @@ def get_Contour(img):
     (_, thresh) = cv2.threshold(blurred, 90, 255, cv2.THRESH_BINARY)
 
     #检测并画出轮廓
-    # image, contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-    contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    image, contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    #contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
     c = sorted(contours, key=cv2.contourArea, reverse=True)[0]
 
     # compute the rotated bounding box of the largest contour
