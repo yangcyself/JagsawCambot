@@ -47,7 +47,8 @@ def cutout_template(source,template,temp_pos = None):
     #高斯平滑&阈值分割
     blurred = cv2.blur(gradient, (5, 5))
     _, thresh = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY)
-    image,contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    # image,contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
     contours.sort(key=cv2.contourArea, reverse=True)
     if(temp_pos is None): # display mode
         out = temp.copy()
