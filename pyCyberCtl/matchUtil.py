@@ -16,10 +16,10 @@ def cutout_source(source,template):
     #sAy = int(source.shape[0]*0.343)
     #sBx = int(source.shape[1]*0.641)
     #sBy = int(source.shape[0]*0.667)
-    sAx = int(template.shape[1]*0.264)
-    sAy = int(template.shape[0]*0.138)
-    sBx = int(template.shape[1]*0.710)
-    sBy = int(template.shape[0]*0.833)
+    sAx = int(template.shape[1]*0.273)
+    sAy = int(template.shape[0]*0.120)
+    sBx = int(template.shape[1]*0.735)
+    sBy = int(template.shape[0]*0.895)
 
     source = source[sAy:sBy,sAx:sBx,:]
     return source
@@ -73,10 +73,10 @@ def cutout_target(template):
     #DAy = int(template.shape[0]*0.123)
     #DBx = int(template.shape[1]*0.696)
     #DBy = int(template.shape[0]*0.889)
-    DAx = int(template.shape[1]*0.264)
-    DAy = int(template.shape[0]*0.138)
-    DBx = int(template.shape[1]*0.710)
-    DBy = int(template.shape[0]*0.833)
+    DAx = int(template.shape[1]*0.273)
+    DAy = int(template.shape[0]*0.120)
+    DBx = int(template.shape[1]*0.735)
+    DBy = int(template.shape[0]*0.895)
     target = template[DAy:DBy,DAx:DBx,:]
     return target
 
@@ -89,7 +89,7 @@ def generateGaussianKernel(shape,u,cov):
             res[i][j] = np.exp(-deltaS/cov)
     return res
 
-def matching(source,template,mode="match"):
+def matching(source,template,mode="match",debug = False):
     sor = cutout_source(source,template)
     
     s_x = int(sor.shape[0]/5)
@@ -101,7 +101,7 @@ def matching(source,template,mode="match"):
     temp = cutout_template(source,template,temp_pos)
     #change 
     
-    temp_pos = (temp_pos[0]+10,temp_pos[1]+10) # change it into tuple 
+    temp_pos = (temp_pos[0],temp_pos[1]) # change it into tuple 
     tep = cv2.copyMakeBorder(temp,10,40,10,40,cv2.BORDER_CONSTANT,value=[0,0,0])
     
     scores = np.zeros((5,5))
@@ -118,25 +118,30 @@ def matching(source,template,mode="match"):
             res = res * g
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
             scores[i,j] = max_val
+
+    if(debug or mode!="match"): 
+        source_x = np.argmax(scores)//5 # x => i 
+        source_y = np.argmax(scores)%5
+        source_x *= s_x
+        source_y *= s_y
+
+        source_y += temp_area.shape[1]
+        
+        out = np.zeros( (max(temp_area.shape[0],sor.shape[0]),
+                            temp_area.shape[1]+sor.shape[1] ,3),dtype = np.uint8)
+        out[0:temp_area.shape[0],0:temp_area.shape[1] ,:] = temp_area
+        out[0:sor.shape[0],temp_area.shape[1]:,:] = sor
+        
+        cv2.line(out, temp_pos, (source_y+20,source_x+20), (0,255,0), 2) #line point: (shape1, shape0)
+
     if(mode=="match"):
         temp_pos = (temp_pos[0] + template.shape[1]*0.114 , temp_pos[1] + template.shape[0]*0.111) # add the temp area margin
+        if(debug):
+            plt.imshow(out)
+            plt.show()
         return temp_pos, scores
-
-    source_x = np.argmax(scores)//5 # x => i 
-    source_y = np.argmax(scores)%5
-    source_x *= s_x
-    source_y *= s_y
-
-    source_y += temp_area.shape[1]
-    
-    out = np.zeros( (max(temp_area.shape[0],sor.shape[0]),
-                        temp_area.shape[1]+sor.shape[1] ,5),dtype = np.uint8)
-    out[0:temp_area.shape[0],0:temp_area.shape[1] ,:] = temp_area
-    out[0:sor.shape[0],temp_area.shape[1]:,:] = sor
-    
-    cv2.line(out, temp_pos, (source_y+20,source_x+20), (0,255,0), 2) #line point: (shape1, shape0)
-    return out
-
+    else:
+        return out
 
 def findEmpty(emptypic, targetpic,threshold = 100, mode = "release"):
     #given an empty pic and compare it with the targetpic
