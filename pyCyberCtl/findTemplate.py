@@ -71,7 +71,8 @@ def matching(source, template):
             img = source[s_x*i:s_x*(i+1)+bd[0],s_y*j:s_y*(j+1)+bd[1],:]
 #             res = cv2.matchTemplate(tep,img,cv2.TM_CCORR_NORMED) #87.29 vs 85.55
 #             res = cv2.matchTemplate(tep,img,cv2.TM_CCORR) # 不好，倒数
-            res = cv2.matchTemplate(img,template,cv2.TM_CCOEFF) # 最高！
+            # res = cv2.matchTemplate(img,template,cv2.TM_CCOEFF) # 最高！
+            res = cv2.matchTemplate(img,template,cv2.TM_CCOEFF_NORMED) # 最高！！！
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
             scores[i][j] = max_val
     # res = cv2.matchTemplate(source, template, cv2.TM_CCOEFF)
