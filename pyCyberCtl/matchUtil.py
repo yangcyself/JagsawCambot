@@ -89,7 +89,7 @@ def generateGaussianKernel(shape,u,cov):
             res[i][j] = np.exp(-deltaS/cov)
     return res
 
-def matching(source,template,mode="match",debug = False):
+def old_matching(source,template,mode="match",debug = False):
     sor = cutout_source(source,template)
     
     s_x = int(sor.shape[0]/5)
@@ -110,8 +110,8 @@ def matching(source,template,mode="match",debug = False):
             img = sor[s_x*i:s_x*(i+1),s_y*j:s_y*(j+1),:]
 #             res = cv2.matchTemplate(tep,img,cv2.TM_CCORR_NORMED) #87.29 vs 85.55
 #             res = cv2.matchTemplate(tep,img,cv2.TM_CCORR) # 不好，倒数
-            res = cv2.matchTemplate(tep,img,cv2.TM_CCOEFF) # 最高！
-#             res = cv2.matchTemplate(tep,img,cv2.TM_CCOEFF_NORMED) # 最高！
+            # res = cv2.matchTemplate(tep,img,cv2.TM_CCOEFF) # 最高！
+            res = cv2.matchTemplate(tep,img,cv2.TM_CCOEFF_NORMED) # 最高！！！
 #             res = cv2.matchTemplate(tep,img,cv2.TM_SQDIFF) # 不好
 #             res = cv2.matchTemplate(tep,img,cv2.TM_SQDIFF_NORMED) # 最高，但是和后面的差距并不很大
             g = generateGaussianKernel(res.shape,np.array([15,15]),500)
