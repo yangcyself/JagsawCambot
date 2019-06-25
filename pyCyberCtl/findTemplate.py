@@ -1,5 +1,5 @@
 import numpy as np
-import cv2 as cv
+import cv2 
 import matplotlib.pyplot as plt
 
 
@@ -29,7 +29,7 @@ def find_template(img,empty):
     er = cv2.erode(sub_bin,kernel1,iterations = 2)
 
 
-    image, contours, hierarchy = cv2.findContours(er,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(er,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
 
         
     c = sorted(contours, key=cv2.contourArea, reverse=True)[0]
@@ -59,23 +59,37 @@ def find_template(img,empty):
 def matching(source, template):
     h, w = template.shape[:2]# rows->h, cols->w
     hs, ws = source.shape[:2]
+    s_x = int(source.shape[0]/5)
+    s_y = int(source.shape[1]/5)
     #loc = np.array(range(2))
     # 相关系数匹配方法：cv2.TM_CCOEFF
-    res = cv.matchTemplate(source, template, cv.TM_CCOEFF)
-    min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
+    bd = (30,30) # border
+    source = cv2.copyMakeBorder(source,0,bd[0],0,bd[1],cv2.BORDER_CONSTANT,value=[0,0,0])
+    scores = np.zeros((5,5))
+    for i in range(5):
+        for j in range(5):
+            img = source[s_x*i:s_x*(i+1)+bd[0],s_y*j:s_y*(j+1)+bd[1],:]
+#             res = cv2.matchTemplate(tep,img,cv2.TM_CCORR_NORMED) #87.29 vs 85.55
+#             res = cv2.matchTemplate(tep,img,cv2.TM_CCORR) # 不好，倒数
+            res = cv2.matchTemplate(img,template,cv2.TM_CCOEFF) # 最高！
+            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+            scores[i][j] = max_val
+    # res = cv2.matchTemplate(source, template, cv2.TM_CCOEFF)
+    # min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
 
-    left_top = max_loc  # 左上角
-    right_bottom = (left_top[0] + w, left_top[1] + h)  # 右下角
-    #cv.rectangle(source, left_top, right_bottom, 255, 2)
-    #return left_top
-    loc = [0,0]
-    loc[0] = left_top[0] + h/2
-    loc[1] = left_top[1] + w/2
-    hsd=hs//5
-    wsd=ws//5
-    loc[0]=loc[0]//hsd
-    loc[1]=loc[1]//wsd
-    return loc
+    # # left_top = max_loc  # 左上角
+    # # right_bottom = (left_top[0] + w, left_top[1] + h)  # 右下角
+    # # #cv.rectangle(source, left_top, right_bottom, 255, 2)
+    # # #return left_top
+    # # loc = [0,0]
+    # # loc[0] = left_top[0] + h/2
+    # # loc[1] = left_top[1] + w/2
+    # # hsd=hs//5
+    # # wsd=ws//5
+    # # loc[0]=loc[0]//hsd
+    # # loc[1]=loc[1]//wsd
+    # return loc
+    return scores
 
 
 
