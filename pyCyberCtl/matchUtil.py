@@ -143,26 +143,17 @@ def matching(source,template,mode="match",debug = False):
     else:
         return out
 
-def findEmpty(emptypic, targetpic,threshold = 100, mode = "release"):
-    #given an empty pic and compare it with the targetpic
-    #decide which part is empty
-    # use the background subtraction method
-#     backSub = cv2.createBackgroundSubtractorKNN()
-#     backSub =cv2.createBackgroundSubtractorMOG2()
-#     for i in range(1, 16):
-#         backSub.apply(emptypic, learningRate=0.5)
-#     fgmask = backSub.apply(targetpic, learningRate=0)
-
-#   directly substract the two picture
+def findEmpty(emptypic, targetpic,threshold = 100, mode = "release"):    
     tx,ty,_ = targetpic.shape
-    ex,ey,_ = emptypic.shape
-    commonsize = (min(tx,ex),min(ty,ey))
-    fgmask = targetpic[:commonsize[0],:commonsize[1],:] - emptypic[:commonsize[0],:commonsize[1],:]
+    target = cv2.cvtColor(targetpic, cv2.COLOR_BGR2GRAY)
+    (_, tar) = cv2.threshold(target, 90, 255, cv2.THRESH_BINARY)
+
+    kernel1 = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))
+    er = cv2.erode(tar,kernel1,iterations = 1)
+
+    kernel2 = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))
+    fgmask = cv2.morphologyEx(er, cv2.MORPH_CLOSE, kernel2,iterations=3)
     
-    fgmask = cv2.cvtColor(fgmask, cv2.COLOR_BGR2GRAY)
-    fgmask =  cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, np.ones((5,5),np.uint8))
-    (_, fgmask) = cv2.threshold(fgmask, 20, 255, cv2.THRESH_BINARY)
-    fgmask =  cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, np.ones((10,10),np.uint8))
     if(mode=="debug"):
         plt.imshow(fgmask)
         plt.show()
@@ -175,4 +166,3 @@ def findEmpty(emptypic, targetpic,threshold = 100, mode = "release"):
     fgmask = fgmask.mean(axis = 1)
     print(fgmask)
     return fgmask<threshold
-    
