@@ -6,9 +6,10 @@ import re
 from Cut import *
 
 def RGBEqualizeHist(target):
-    for i in range(3):
-        target[:,:,i] = cv2.equalizeHist(target[:,:,i])
     return target
+    # for i in range(3):
+    #     target[:,:,i] = cv2.equalizeHist(target[:,:,i])
+    # return target
 
 def cutout_source(source,template):
     source = RGBEqualizeHist(source)
@@ -16,10 +17,10 @@ def cutout_source(source,template):
     #sAy = int(source.shape[0]*0.343)
     #sBx = int(source.shape[1]*0.641)
     #sBy = int(source.shape[0]*0.667)
-    sAx = int(template.shape[1]*0.264)
-    sAy = int(template.shape[0]*0.138)
-    sBx = int(template.shape[1]*0.710)
-    sBy = int(template.shape[0]*0.833)
+    sAx = int(template.shape[1]*0.273)
+    sAy = int(template.shape[0]*0.120)
+    sBx = int(template.shape[1]*0.735)
+    sBy = int(template.shape[0]*0.895)
 
     source = source[sAy:sBy,sAx:sBx,:]
     return source
@@ -47,7 +48,8 @@ def cutout_template(source,template,temp_pos = None):
     #高斯平滑&阈值分割
     blurred = cv2.blur(gradient, (5, 5))
     _, thresh = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY)
-    image,contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    # image,contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
     contours.sort(key=cv2.contourArea, reverse=True)
     if(temp_pos is None): # display mode
         out = temp.copy()
@@ -72,10 +74,10 @@ def cutout_target(template):
     #DAy = int(template.shape[0]*0.123)
     #DBx = int(template.shape[1]*0.696)
     #DBy = int(template.shape[0]*0.889)
-    DAx = int(template.shape[1]*0.264)
-    DAy = int(template.shape[0]*0.138)
-    DBx = int(template.shape[1]*0.710)
-    DBy = int(template.shape[0]*0.833)
+    DAx = int(template.shape[1]*0.273)
+    DAy = int(template.shape[0]*0.120)
+    DBx = int(template.shape[1]*0.735)
+    DBy = int(template.shape[0]*0.895)
     target = template[DAy:DBy,DAx:DBx,:]
     return target
 
@@ -88,7 +90,7 @@ def generateGaussianKernel(shape,u,cov):
             res[i][j] = np.exp(-deltaS/cov)
     return res
 
-def matching(source,template,mode="match"):
+def old_matching(source,template,mode="match",debug = False):
     sor = cutout_source(source,template)
     
     s_x = int(sor.shape[0]/5)
@@ -100,7 +102,7 @@ def matching(source,template,mode="match"):
     temp = cutout_template(source,template,temp_pos)
     #change 
     
-    temp_pos = (temp_pos[0]+10,temp_pos[1]+10) # change it into tuple 
+    temp_pos = (temp_pos[0],temp_pos[1]) # change it into tuple 
     tep = cv2.copyMakeBorder(temp,10,40,10,40,cv2.BORDER_CONSTANT,value=[0,0,0])
     
     scores = np.zeros((5,5))
@@ -109,54 +111,50 @@ def matching(source,template,mode="match"):
             img = sor[s_x*i:s_x*(i+1),s_y*j:s_y*(j+1),:]
 #             res = cv2.matchTemplate(tep,img,cv2.TM_CCORR_NORMED) #87.29 vs 85.55
 #             res = cv2.matchTemplate(tep,img,cv2.TM_CCORR) # 不好，倒数
-            res = cv2.matchTemplate(tep,img,cv2.TM_CCOEFF) # 最高！
-#             res = cv2.matchTemplate(tep,img,cv2.TM_CCOEFF_NORMED) # 最高！
+            # res = cv2.matchTemplate(tep,img,cv2.TM_CCOEFF) # 最高！
+            res = cv2.matchTemplate(tep,img,cv2.TM_CCOEFF_NORMED) # 最高！！！
 #             res = cv2.matchTemplate(tep,img,cv2.TM_SQDIFF) # 不好
 #             res = cv2.matchTemplate(tep,img,cv2.TM_SQDIFF_NORMED) # 最高，但是和后面的差距并不很大
             g = generateGaussianKernel(res.shape,np.array([15,15]),500)
             res = res * g
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
             scores[i,j] = max_val
+
+    if(debug or mode!="match"): 
+        source_x = np.argmax(scores)//5 # x => i 
+        source_y = np.argmax(scores)%5
+        source_x *= s_x
+        source_y *= s_y
+
+        source_y += temp_area.shape[1]
+        
+        out = np.zeros( (max(temp_area.shape[0],sor.shape[0]),
+                            temp_area.shape[1]+sor.shape[1] ,3),dtype = np.uint8)
+        out[0:temp_area.shape[0],0:temp_area.shape[1] ,:] = temp_area
+        out[0:sor.shape[0],temp_area.shape[1]:,:] = sor
+        
+        cv2.line(out, temp_pos, (source_y+20,source_x+20), (0,255,0), 2) #line point: (shape1, shape0)
+
     if(mode=="match"):
         temp_pos = (temp_pos[0] + template.shape[1]*0.114 , temp_pos[1] + template.shape[0]*0.111) # add the temp area margin
+        if(debug):
+            plt.imshow(out)
+            plt.show()
         return temp_pos, scores
+    else:
+        return out
 
-    source_x = np.argmax(scores)//5 # x => i 
-    source_y = np.argmax(scores)%5
-    source_x *= s_x
-    source_y *= s_y
-
-    source_y += temp_area.shape[1]
-    
-    out = np.zeros( (max(temp_area.shape[0],sor.shape[0]),
-                        temp_area.shape[1]+sor.shape[1] ,5),dtype = np.uint8)
-    out[0:temp_area.shape[0],0:temp_area.shape[1] ,:] = temp_area
-    out[0:sor.shape[0],temp_area.shape[1]:,:] = sor
-    
-    cv2.line(out, temp_pos, (source_y+20,source_x+20), (0,255,0), 2) #line point: (shape1, shape0)
-    return out
-
-
-def findEmpty(emptypic, targetpic,threshold = 100, mode = "release"):
-    #given an empty pic and compare it with the targetpic
-    #decide which part is empty
-    # use the background subtraction method
-#     backSub = cv2.createBackgroundSubtractorKNN()
-#     backSub =cv2.createBackgroundSubtractorMOG2()
-#     for i in range(1, 16):
-#         backSub.apply(emptypic, learningRate=0.5)
-#     fgmask = backSub.apply(targetpic, learningRate=0)
-
-#   directly substract the two picture
+def findEmpty(emptypic, targetpic,threshold = 100, mode = "release"):    
     tx,ty,_ = targetpic.shape
-    ex,ey,_ = emptypic.shape
-    commonsize = (min(tx,ex),min(ty,ey))
-    fgmask = targetpic[:commonsize[0],:commonsize[1],:] - emptypic[:commonsize[0],:commonsize[1],:]
+    target = cv2.cvtColor(targetpic, cv2.COLOR_BGR2GRAY)
+    (_, tar) = cv2.threshold(target, 90, 255, cv2.THRESH_BINARY)
+
+    kernel1 = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))
+    er = cv2.erode(tar,kernel1,iterations = 1)
+
+    kernel2 = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))
+    fgmask = cv2.morphologyEx(er, cv2.MORPH_CLOSE, kernel2,iterations=3)
     
-    fgmask = cv2.cvtColor(fgmask, cv2.COLOR_BGR2GRAY)
-    fgmask =  cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, np.ones((5,5),np.uint8))
-    (_, fgmask) = cv2.threshold(fgmask, 20, 255, cv2.THRESH_BINARY)
-    fgmask =  cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, np.ones((10,10),np.uint8))
     if(mode=="debug"):
         plt.imshow(fgmask)
         plt.show()
@@ -169,4 +167,3 @@ def findEmpty(emptypic, targetpic,threshold = 100, mode = "release"):
     fgmask = fgmask.mean(axis = 1)
     print(fgmask)
     return fgmask<threshold
-    

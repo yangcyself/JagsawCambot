@@ -45,16 +45,18 @@ def get_Gradient(img):
     return gradient
 
 
-def get_Contour(img):
+def get_Contour(img,mode = "release"):
     #边缘
-    gradient = get_Gradient(img)
+    #gradient = get_Gradient(img)
     #高斯平滑&阈值分割
-    blurred = cv2.blur(gradient, (9, 9))
-    (_, thresh) = cv2.threshold(blurred, 90, 255, cv2.THRESH_BINARY)
+    #blurred = cv2.blur(gradient, (9, 9))
+    #(_, thresh) = cv2.threshold(blurred, 90, 255, cv2.THRESH_BINARY)
+    gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    ret,thresh = cv2.threshold(gray,30,255,cv2.THRESH_BINARY_INV)
 
     #检测并画出轮廓
-    image, contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-    #contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    # image, contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
     c = sorted(contours, key=cv2.contourArea, reverse=True)[0]
 
     # compute the rotated bounding box of the largest contour
@@ -63,7 +65,8 @@ def get_Contour(img):
 
     # draw a bounding box arounded the detected barcode and display the image
     cv2.drawContours(img, [box], -1, (0, 255, 0), 3)
-    #cv2.imshow("Image", img)
+    if(mode=="debug"):
+        cv2.imshow("Image", img)
 
     #cv2.imwrite("contoursImage2.jpg", image)
     #cv2.waitKey(0)
