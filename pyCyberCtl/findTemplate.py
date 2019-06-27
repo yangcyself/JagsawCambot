@@ -44,11 +44,11 @@ def find_template(img,empty):
     
     center = np.mean(box,axis = 0)
 
-    cut = target[int(center[1]-height/2):int(center[1]+height/2),int(center[0]-width/2):int(center[0]+width/2)]
+    cut = target[int(center[1]-height/2 + 20):int(center[1]+height/2- 20),int(center[0]-width/2 + 20):int(center[0]+width/2 -20)]
     x,y,_ = cut.shape
-    if x<=50 or y<=50:
+    if x<=25 or y<=25:
         
-        return target_cut[int(w*0.03):int(w*1.1)//5,int(h*0.04):int(h*1.1)//5,:]
+        return target_cut[int(w*0.03 + 20):int(w*1.1)//5 - 20,int(h*0.04) +20:int(h*1.1)//5 -20 ,:]
     plt.imshow(cut)
     plt.show()
     

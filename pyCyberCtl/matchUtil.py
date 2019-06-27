@@ -6,9 +6,10 @@ import re
 from Cut import *
 
 def RGBEqualizeHist(target):
-    for i in range(3):
-        target[:,:,i] = cv2.equalizeHist(target[:,:,i])
     return target
+    # for i in range(3):
+    #     target[:,:,i] = cv2.equalizeHist(target[:,:,i])
+    # return target
 
 def cutout_source(source,template):
     source = RGBEqualizeHist(source)
