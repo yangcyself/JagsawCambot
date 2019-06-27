@@ -1,19 +1,21 @@
 import numpy as np
-import cv2 as cv
+import cv2 
 import matplotlib.pyplot as plt
 
 
-def find_template(img,empty):
-    DAx = int(empty.shape[1]*0.250)
-    DAy = int(empty.shape[0]*0.100)
-    #273,120
+def find_template(img,empty,x,y):
+    DAx = int(empty.shape[1]*0.273)
+    DAy = int(empty.shape[0]*0.120)
+    #250,100
     DBx = int(empty.shape[1]*0.735)
     DBy = int(empty.shape[0]*0.895)
-    target_cut = img[DAy:DBy,DAx:DBx,:]
-    empty_cut = empty[DAy:DBy,DAx:DBx,:]
-    w,h,_ = target_cut.shape
-    target = target_cut[:int(w*1.5)//5,:int(h*1.5)//5,:]
-    empty = empty_cut[:int(w*1.5)//5,:int(h*1.5)//5,:]
+    target_cut = img[DAy-int(empty.shape[1]*0.023):DBy,DAx-int(empty.shape[0]*0.01):DBx,:]
+    empty_cut = empty[DAy-int(empty.shape[1]*0.023):DBy,DAx-int(empty.shape[0]*0.01):DBx,:]
+    #w,h,_ = target_cut.shape
+    w,h = DBy-DAy,DBx-DAx
+    target = target_cut[int(x*(w//5)):int(x*(w//5))+int(w*1.5)//5,int(y*(h//5)):int(y*(h//5))+int(h*1.5)//5,:]
+    empty = empty_cut[int(x*(w//5)):int(x*(w//5))+int(w*1.5)//5,int(y*(h//5)):int(y*(h//5))+int(h*1.5)//5,:]
+    #empty = empty_cut[:int(w*1.5)//5,:int(h*1.5)//5,:]
     target_gray = cv2.cvtColor(target, cv2.COLOR_BGR2GRAY)
     empty_gray = cv2.cvtColor(empty, cv2.COLOR_BGR2GRAY)
     sub = target_gray - empty_gray
@@ -46,9 +48,11 @@ def find_template(img,empty):
 
     cut = target[int(center[1]-height/2):int(center[1]+height/2),int(center[0]-width/2):int(center[0]+width/2)]
     x,y,_ = cut.shape
-    if x<=50 or y<=50:
-        
-        return target_cut[int(w*0.03):int(w*1.1)//5,int(h*0.04):int(h*1.1)//5,:]
+    if x<=25 or y<=25:
+        #target_cut = img[DAy:DBy,DAx:DBx,:]
+
+        return target_cut[int(x*(w//5))+int(w*0.03)-20:int(x*(w//5))+int(w*1.1)//5+20,
+                          int(y*(h//5))+int(h*0.04)-20:int(y*(h//5))+int(h*1.1)//5+20,:]
     plt.imshow(cut)
     plt.show()
     
@@ -61,8 +65,8 @@ def matching(source, template):
     hs, ws = source.shape[:2]
     #loc = np.array(range(2))
     # 相关系数匹配方法：cv2.TM_CCOEFF
-    res = cv.matchTemplate(source, template, cv.TM_CCOEFF)
-    min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
+    res = cv2.matchTemplate(source, template, cv2.TM_CCOEFF)
+    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
 
     left_top = max_loc  # 左上角
     right_bottom = (left_top[0] + w, left_top[1] + h)  # 右下角
