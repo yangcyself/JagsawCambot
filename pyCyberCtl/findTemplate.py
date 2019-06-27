@@ -3,17 +3,20 @@ import cv2
 import matplotlib.pyplot as plt
 
 
-def find_template(img,empty):
-    DAx = int(empty.shape[1]*0.250)
-    DAy = int(empty.shape[0]*0.100)
-    #273,120
+def find_template(img,empty,x,y):
+    DAx = int(empty.shape[1]*0.273)
+    DAy = int(empty.shape[0]*0.120)
+    #250,100
     DBx = int(empty.shape[1]*0.735)
     DBy = int(empty.shape[0]*0.895)
-    target_cut = img[DAy:DBy,DAx:DBx,:]
-    empty_cut = empty[DAy:DBy,DAx:DBx,:]
-    w,h,_ = target_cut.shape
-    target = target_cut[:int(w*1.5)//5,:int(h*1.5)//5,:]
-    empty = empty_cut[:int(w*1.5)//5,:int(h*1.5)//5,:]
+    target_cut = img[DAy-int(empty.shape[1]*0.023):DBy,DAx-int(empty.shape[0]*0.01):DBx,:]
+    empty_cut = empty[DAy-int(empty.shape[1]*0.023):DBy,DAx-int(empty.shape[0]*0.01):DBx,:]
+    #w,h,_ = target_cut.shape
+    w,h = DBy-DAy,DBx-DAx
+    x,y = y,x
+    target = target_cut[int(x*(w//5)):int(x*(w//5))+int(w*1.5)//5,int(y*(h//5)):int(y*(h//5))+int(h*1.5)//5,:]
+    empty = empty_cut[int(x*(w//5)):int(x*(w//5))+int(w*1.5)//5,int(y*(h//5)):int(y*(h//5))+int(h*1.5)//5,:]
+    #empty = empty_cut[:int(w*1.5)//5,:int(h*1.5)//5,:]    
     target_gray = cv2.cvtColor(target, cv2.COLOR_BGR2GRAY)
     empty_gray = cv2.cvtColor(empty, cv2.COLOR_BGR2GRAY)
     sub = target_gray - empty_gray
@@ -38,17 +41,20 @@ def find_template(img,empty):
 
     width = rect[1][0]
     height = rect[1][1]
-    if width < height:
-        width,height = height,width
-        
     
     center = np.mean(box,axis = 0)
-
-    cut = target[int(center[1]-height/2 + 20):int(center[1]+height/2- 20),int(center[0]-width/2 + 20):int(center[0]+width/2 -20)]
-    x,y,_ = cut.shape
-    if x<=25 or y<=25:
-        
-        return target_cut[int(w*0.03 + 20):int(w*1.1)//5 - 20,int(h*0.04) +20:int(h*1.1)//5 -20 ,:]
+    print("center:",center,"width",width,"height",height)
+    cut = target[int(center[1]-height/2 + 20):int(center[1]+height/2 - 20),int(center[0]-width/2 + 20):int(center[0]+width/2 - 20)]
+    cw,ch,_ = cut.shape
+    print(cw,ch)
+    if cw<=1000 or ch<=100:
+        #target_cut = img[DAy:DBy,DAx:DBx,:]
+        # print(int(x*(w//5))+int(w*0.03)+20,int(x*(w//5))+int(w*1.1)//5-20)
+        # print(int(y*(h//5))+int(h*0.04)+20,int(y*(h//5))+int(h*1.1)//5-20)
+        # return target_cut[int(x*(w//5))+int(w*0.03)+20:int(x*(w//5))+int(w*1.1)//5-20,
+        #                   int(y*(h//5))+int(h*0.04)+20:int(y*(h//5))+int(h*1.1)//5-20,:]
+        return target_cut[int(x*(w//5))+int(w*0.03)+20:int(x*(w//5))+int(w*1.1)//5-20,
+                          int(y*(h//5))+int(h*0.04)+20:int(y*(h//5))+int(h*1.1)//5-20,:]
     plt.imshow(cut)
     plt.show()
     
