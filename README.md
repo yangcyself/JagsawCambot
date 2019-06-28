@@ -21,14 +21,14 @@ CyberDIP driver for windows in C++ 11.
 ## 目录结构
 - [qtCyberDip](./qtCyberDip)
   - 原来的qtCyberDip实现加了一个upd接口
-    - 在[qtcyberdip](qtCyberDip\qtcyberdip.h#L92)增加了readyRead事件, 和一些相关的QTobject的定义
-    - 在[usrGameController](qtCyberDip\usrGameController.h#L38)增加了保存最新的图片的功能，并且可以在返回给server
+    - 在[qtcyberdip](qtCyberDip/qtcyberdip.h#L92)增加了readyRead事件, 和一些相关的QTobject的定义
+    - 在[usrGameController](qtCyberDip/usrGameController.h#L38)增加了保存最新的图片的功能，并且可以在返回给server
 - [qtCyberCtl](./qtCyberCtl)
-  - [CyClient](pyCyberCtl\CyClient.py)udp接口client端的实现
-  - [cut](pyCyberCtl\Cut.py) 一开始截取平板位置的实现
-  - [matchUtil](pyCyberCtl\matchUtil.py) 截取目标区域，模板区域，以及匹配算法，empty算法等等的实现
-  - [player](pyCyberCtl\player.py)玩游戏的各种动作，初始化，过关等等的实现
-  - [rawProcessing](pyCyberCtl\rawProcessing.py)失败的平板定位实现
+  - [CyClient](pyCyberCtl/CyClient.py)udp接口client端的实现
+  - [cut](pyCyberCtl/Cut.py) 一开始截取平板位置的实现
+  - [matchUtil](pyCyberCtl/matchUtil.py) 截取目标区域，模板区域，以及匹配算法，empty算法等等的实现
+  - [player](pyCyberCtl/player.py)玩游戏的各种动作，初始化，过关等等的实现
+  - [rawProcessing](pyCyberCtl/rawProcessing.py)失败的平板定位实现
 
 
 
