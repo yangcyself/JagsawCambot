@@ -113,10 +113,6 @@ class Player:
         self.clickAtImg(x,y,img.shape[:2])
         img = self.getOneShot()
         self.emptyimg = cutout_target(img)
-        plt.imshow(self.sourceimg)
-        plt.show()
-        plt.imshow(self.emptyimg)
-        plt.show()
     def DragToCorner(self,sor_shape,img_shape,tempPos = None,ex = 0, ey = 0):
         img = self.getOneShot()
         target = cutout_target(img)
@@ -151,7 +147,10 @@ class Player:
         (x0,y0), scores = old_matching(self.sourceimg.copy(),img.copy(),mode = "match",debug = False)
         scores += np.random.random((5,5))/5
         print("Template: ",x0,y0,"img shape: ", img.shape[:2])
-        possible = findEmpty(self.emptyimg,target,mode = "debug")
+        possible = findEmpty(self.emptyimg,target,mode = "release")
+        
+        trustworthy = findEmpty(target,self.emptyimg,mode = "release")
+        
         ey = np.argmax(scores)//5 
         ex = np.argmax(scores)%5
         while(not possible[ey][ex]):
@@ -165,8 +164,6 @@ class Player:
     #     cv2.imwrite("tmpSourceImg%d.png"%tmpcount,img)
     #     tmpcount += 1    
         template = find_template(moved_template,img,ex,ey)
-        plt.imshow(template)
-        plt.show()
         source = cutout_target(self.sourceimg)
         scores = matching(source,template)
         initial_num = possible.sum()
@@ -175,12 +172,13 @@ class Player:
     #     ex,ey = 0,0 # the point to check the correctness
         scores[ey][ex] = -1
         triedCount = 0
+        lastshot = moved_template
         while(possible.sum()>0):
             y = np.argmax(scores)//5 # x => i 
             x = np.argmax(scores)%5
             print("DRAG TO: ",x,y)
             scores[y][x]=-1
-            if(not possible[y][x] ): # we don't have to move to 0,0, we just check it in the next round
+            if(not possible[y][x] and trustworthy[y][x] ):
                 continue
             possible[y][x] = False
 
@@ -192,12 +190,28 @@ class Player:
 
             empty = findEmpty(self.emptyimg,timg,mode = "release")
             print("TRIED:", triedCount )
-            if(not empty[ey][ex] or empty[y][x]):
+            while(empty[y][x] and empty[ey][ex]):
+                # Might lose the template during the drag
+                losttemplate = compareChanged(lastshot,timg,mode = "release")
+                if(losttemplate is None): # the template is not detectable by find empty
+                    break
+                else:
+                    print("LOSTED :")
+                    find = compareChanged(lastshot,timg,mode = "debug")
+                    plt.imshow(find)
+                    plt.show()
+                    dx,dy,dw,dh = losttemplate
+                    dx = dx+dw/2-30
+                    dy = dy + dh/2 - 30
+                    timg = self.DragToCorner(target.shape[:2],img.shape[:2],(dx,dy),x,y)
+                    lastshot = timg
+            if((not empty[ey][ex] and trustworthy[ey][ex])or empty[y][x]):
                 break
             ex,ey = x,y
+            lastshot = timg
+        
 
         
-ply = Player(cli)
 
 if __name__ == "__main__":
     cli = Client()

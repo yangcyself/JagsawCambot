@@ -90,6 +90,34 @@ def generateGaussianKernel(shape,u,cov):
             res[i][j] = np.exp(-deltaS/cov)
     return res
 
+def find_template(img,empty,y,x):
+    img = cutout_target(img)
+    s_x = img.shape[0]/5
+    s_y = img.shape[1]/5
+    return img[ int(s_x*x+ s_x/4)       :   int(s_x*(x+1) - s_x/8*3) , # edited 2019-06-28 08:45:20
+                int(s_y * y + s_y/4)    :   int(s_y*(y+1) - s_y/4) , :]
+
+def matching(source, template):
+    h, w = template.shape[:2]# rows->h, cols->w
+    hs, ws = source.shape[:2]
+    s_x = int(source.shape[0]/5)
+    s_y = int(source.shape[1]/5)
+    bd = (30,30) # border
+    source = cv2.copyMakeBorder(source,0,bd[0],0,bd[1],cv2.BORDER_CONSTANT,value=[0,0,0])
+    scores = np.zeros((5,5))
+    for i in range(5):
+        for j in range(5):
+            img = source[s_x*i:s_x*(i+1)+bd[0],s_y*j:s_y*(j+1)+bd[1],:]
+#             res = cv2.matchTemplate(tep,img,cv2.TM_CCORR_NORMED) #87.29 vs 85.55
+#             res = cv2.matchTemplate(tep,img,cv2.TM_CCORR) # 不好，倒数
+            # res = cv2.matchTemplate(img,template,cv2.TM_CCOEFF) # 最高！
+            res = cv2.matchTemplate(img,template,cv2.TM_CCOEFF_NORMED) # 最高！！！
+            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+            scores[i][j] = max_val
+    
+    return scores
+
+
 def old_matching(source,template,mode="match",debug = False):
     sor = cutout_source(source,template)
     
@@ -109,16 +137,22 @@ def old_matching(source,template,mode="match",debug = False):
     for i in range(5):
         for j in range(5):
             img = sor[s_x*i:s_x*(i+1),s_y*j:s_y*(j+1),:]
+            img = cv2.resize(img,(int(img.shape[1]/1.8),int(img.shape[0]/1.8)))
+            ix,iy = int(img.shape[0]/5),int(img.shape[1]/5)
+            img = img[ix:ix*4,iy:iy*4,:]
 #             res = cv2.matchTemplate(tep,img,cv2.TM_CCORR_NORMED) #87.29 vs 85.55
 #             res = cv2.matchTemplate(tep,img,cv2.TM_CCORR) # 不好，倒数
             # res = cv2.matchTemplate(tep,img,cv2.TM_CCOEFF) # 最高！
             res = cv2.matchTemplate(tep,img,cv2.TM_CCOEFF_NORMED) # 最高！！！
 #             res = cv2.matchTemplate(tep,img,cv2.TM_SQDIFF) # 不好
 #             res = cv2.matchTemplate(tep,img,cv2.TM_SQDIFF_NORMED) # 最高，但是和后面的差距并不很大
-            g = generateGaussianKernel(res.shape,np.array([15,15]),500)
-            res = res * g
+            g = generateGaussianKernel(res.shape,np.array([20,20]),500)
+            res = res + g
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
             scores[i,j] = max_val
+    tspx,tspy = int(temp.shape[0]/7),int(temp.shape[1]/7)
+    tsor = cv2.resize(sor,(int(sor.shape[1]/1.8),int(sor.shape[0]/1.9)))
+    scores += matching(tsor,temp[tspx*2:tspx*5,tspy*2:tspy*5,:])
 
     if(debug or mode!="match"): 
         source_x = np.argmax(scores)//5 # x => i 
@@ -167,3 +201,45 @@ def findEmpty(emptypic, targetpic,threshold = 100, mode = "release"):
     fgmask = fgmask.mean(axis = 1)
     print(fgmask)
     return fgmask<threshold
+
+
+def anonymous(target):
+    dim = len(target.shape)
+    if(dim ==3):
+        tx,ty,_ = target.shape
+        target = cv2.cvtColor(target, cv2.COLOR_BGR2GRAY)
+    else:
+        tx,ty, = target.shape
+    (_, tar) = cv2.threshold(target, 90, 255, cv2.THRESH_BINARY)
+
+    kernel1 = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))
+    er = cv2.erode(tar,kernel1,iterations = 1)
+
+    kernel2 = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))
+    fgmask = cv2.morphologyEx(er, cv2.MORPH_CLOSE, kernel2,iterations=3)
+    return fgmask
+
+def compareChanged(pic1, pic2,threshold = 100, mode = "release"):
+    pic1 = cv2.resize(pic1,(pic2.shape[1],pic2.shape[0]))
+    print(pic1.shape)
+    print(pic2.shape)
+    mask1 = anonymous(pic1)
+    mask2 = anonymous(pic2)
+    diff = (mask2 - mask1).clip(0,255)
+    diff = anonymous(diff)
+
+    contours, hierarchy = cv2.findContours(diff,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    if(not len(contours)):
+        return None
+    contours.sort(key=cv2.contourArea, reverse=True)
+    
+    x,y,w,h= cv2.boundingRect(contours[0])    
+    
+    if(mode=="debug"):
+        plt.imshow(diff)
+        plt.show()
+        cv2.rectangle(pic2,(x,y),(x+w,y+h),(0,255,0),2)
+        plt.imshow(pic2)
+        plt.show()
+        return pic2
+    return x,y,w,h
